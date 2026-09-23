@@ -9,8 +9,7 @@ Promise<void> => {
     session.startTransaction();
 
         try {
-            const userId = req.user?.userId
-
+            const userId = req.user?.userId;
             if(!userId){
             res.status(401).json({ message: "Không tìm thấy định danh người dùng." });
             return;

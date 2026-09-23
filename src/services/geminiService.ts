@@ -2,13 +2,21 @@ import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+export interface ParsedTransaction {
+  isValid: boolean;
+  amount: number;
+  category: string;
+  note: string;
+  type: "expense" | "income";
+}
 
 const transactionSchema = {
   type: "OBJECT",
   properties: {
-    isVaild:{
-        type:"BOOLEAN",
-         description: "true nếu câu nói có chứa thông tin thu/chi tiền; false nếu là câu chào hỏi hoặc không liên quan tài chính"
+    isValid: {
+      type: "BOOLEAN",
+      description:
+        "true nếu câu nói có chứa thông tin thu/chi tiền; false nếu là câu chào hỏi hoặc không liên quan tài chính",
     },
     amount: {
       type: "NUMBER",
@@ -31,17 +39,19 @@ const transactionSchema = {
         'Loại giao dịch: "expense" (chi tiêu) hoặc "income" (thu nhập)',
     },
   },
-  required: ["amount", "category", "note", "type"],
+  required: ["isValid", "amount", "category", "note", "type"],
 };
 
 //3  Khởi tạo model Gemini Flash với cấu hình ép JSON
 
-export interface ParsedTransaction {
-  amount: number;
-  category: string;
-  note: string;
-  type: "expense" | "income";
-}
+const SYSTEM_INSTRUCTION = `
+                Bạn là trợ lý tài chính thông minh cho ứng dụng Tích Lúa.
+Nhiệm vụ: Phân tích câu nói tiếng Việt của người dùng về thu chi và chuyển thành dữ liệu.
+Quy đổi tiếng lóng tiền tệ:
+- k, nghìn, ngàn: x1.000 (vd: 50k -> 50000)
+- củ, triệu, tr: x1.000.000 (vd: 2 củ -> 2000000, 1tr5 -> 1500000)
+- lít: x100.000
+- type: 'expense' (chi tiêu) hoặc 'income' (thu nhập).`;
 
 export const parseTransaction = async (
   userInput: string,
@@ -51,25 +61,25 @@ export const parseTransaction = async (
       model: "gemini-2.5-flash",
       contents: userInput,
       config: {
-        systemInstruction: `
-                Bạn là trợ lý tài chính thông minh cho ứng dụng Tích Lúa.
-Nhiệm vụ: Phân tích câu nói tiếng Việt của người dùng về thu chi và chuyển thành dữ liệu.
-Quy đổi tiếng lóng tiền tệ:
-- k, nghìn, ngàn: x1.000 (vd: 50k -> 50000)
-- củ, triệu, tr: x1.000.000 (vd: 2 củ -> 2000000, 1tr5 -> 1500000)
-- lít: x100.000
-- type: 'expense' (chi tiêu) hoặc 'income' (thu nhập).`,
+        systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
-        responseSchema:transactionSchema,
+        responseSchema: transactionSchema,
         temperature: 0.1,
       },
     });
 
     const reponseText = reponse.text;
     if (!reponseText) {
-      throw new Error("Không nhận được phản hồi từ AI");
+      throw new Error(
+        "AI không thể phân tích nội dung này (có thể do vi phạm tiêu chuẩn cộng đồng hoặc mạng lag).",
+      );
     }
     const parsedData = JSON.parse(reponseText);
+    if (!parsedData.isValid) {
+      throw new Error(
+        "Không tìm thấy thông tin số tiền trong câu nói của bạn. Vui lòng thử lại!",
+      );
+    }
     return parsedData;
   } catch (error: any) {
     console.error("Lỗi khi phân tích giao dịch:", error.message || error);
