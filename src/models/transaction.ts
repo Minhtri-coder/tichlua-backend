@@ -26,10 +26,10 @@ const transactionSchema = new Schema<Itransaction>(
     },
     type: {
       type: String,
-      enum:{
-        values:["expense", "income"],
-        message: "Type phải là expense hoặc income"
-      }, 
+      enum: {
+        values: ["expense", "income"],
+        message: "Type phải là expense hoặc income",
+      },
       required: [true, "Loại giao dịch là bắt buộc"],
       default: "expense",
     },
@@ -38,7 +38,7 @@ const transactionSchema = new Schema<Itransaction>(
       ref: "Category",
       default: null,
     },
-    note: { type: String, required: [true, "Ghi chú là bắt buộc"], default: "" },
+    note: { type: String, default: "" },
     date: {
       type: Date,
       required: [true, "Ngày giao dịch là bắt buộc"],
