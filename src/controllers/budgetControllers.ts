@@ -107,6 +107,7 @@ export const getBudgetReport = async (
 
     const spendingStats = await Transaction.aggregate([
       {
+        //$match: Lọc ra các giao dịch chi tiêu
         $match: {
           user_id: userObjectId,
           type: "expense",
@@ -117,6 +118,7 @@ export const getBudgetReport = async (
         },
       },
       {
+        //$group: Gom nhóm theo category_id
         $group: {
           _id: "$category_id",
           totalSpent: { $sum: "$amount" },

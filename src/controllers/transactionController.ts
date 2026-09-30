@@ -388,7 +388,7 @@ export const getCategoryPieChart = async (
 ) => {
   try {
     const userId = req.user?.userId;
-    const useObjectId = new mongoose.Types.ObjectId(userId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const { month, year, type = "expense" } = req.query;
 
@@ -402,7 +402,7 @@ export const getCategoryPieChart = async (
     const chartData = await transaction.aggregate([
       {
         $match: {
-          user_id: useObjectId,
+          user_id: userObjectId,
           type: type,
           date: { $gte: startOfMonth, $lte: endOfMonth },
         },
@@ -537,8 +537,8 @@ export const getMonthlySpendingTrend = async (
       {
         $group: {
           _id: {
-            year: { $year: "$date" },
-            month: { $month: "$date" },
+            year: { $year: "$date", timezone: "Asia/Ho_Chi_Minh" },
+            month: { $month: "$date", timezone: "Asia/Ho_Chi_Minh" },
           },
           totalExpense: { $sum: "$amount" },
         },
