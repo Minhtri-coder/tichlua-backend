@@ -135,12 +135,79 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
   try {
     const userId = req.user?.userId;
     const limit = Math.max(1, parseInt(req.query.limit as string) || 5);
-
+    const useObjectId = new mongoose.Types.ObjectId(userId);
     const now = new Date();
-    const selectedMonth =
-      parseInt(req.query.month as string) || now.getMonth() + 1;
-    const selectedYear =
-      parseInt(req.query.year as string) || now.getFullYear();
+
+    //tìm 4 tháng gần nhất có phát sinh tiền
+
+    const activeMonthData = await transaction.aggregate([
+      {
+        $match: {
+          user_id: useObjectId,
+          amount: { $gt: 0 },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: { date: "$date", timezone: "Asia/Ho_Chi_Minh" } },
+            month: { $month: { date: "$date", timezone: "Asia/Ho_Chi_Minh" } },
+          },
+          totalIncome: {
+            $sum: { $cond: [{ $eq: ["$type", "income"] }, "amount", 0] },
+          },
+          totalExpense: {
+            $sum: { $cond: [{ $eq: ["$type", "expense"] }, "amount", 0] },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        // Điều kiện: có phát sinh thu hoặc chi > 0
+        $match: {
+          $or: [{ totalIncome: { $gt: 0 } }, { totalExpense: { $gt: 0 } }],
+        },
+      },
+      {
+        // Sắp xếp lùi dần từ tháng mới nhất về quá khứ
+        $sort: {
+          "_id.year": -1,
+          "_id.month": -1,
+        },
+      },
+      {
+        $limit: 4, // Lấy đủ 4 tháng gần nhất có giao dịch
+      },
+    ]);
+
+    // Format danh sách tháng & đảo ngược lại để hiển thị từ cũ -> mới (trái qua phải)
+    let monthsList = activeMonthData
+      .map((item) => ({
+        month: item._id.month,
+        year: item._id.year,
+        label: `Tháng ${item._id.month}`,
+      }))
+      .reverse();
+
+    // Fallback: nếu tài khoản mới tinh hoàn toàn chưa có giao dịch nào
+    if (monthsList.length === 0) {
+      monthsList.push({
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        label: `Tháng ${now.getMonth() + 1}`,
+      });
+    }
+
+    // 2. XÁC ĐỊNH THÁNG ĐƯỢC CHỌN (selectedMonth & selectedYear)
+    // Ưu tiên tháng truyền lên từ query; nếu không truyền thì chọn tháng mới nhất có tiền
+
+    const lastestActiveMonth = activeMonthData[0]?._id;
+    const selectedMonth = req.query.month
+      ? parseInt(req.query.month as string)
+      : lastestActiveMonth?.month || now.getMonth() + 1;
+    const selectedYear = req.query.year
+      ? parseInt(req.query.year as string)
+      : lastestActiveMonth?.year || now.getFullYear();
 
     const startOfMonth = new Date(
       selectedYear,
@@ -160,7 +227,7 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
       59,
       999,
     );
-    const useObjectId = new mongoose.Types.ObjectId(userId);
+    // 3. LẤY GIAO DỊCH GẦN ĐÂY VÀ THỐNG KÊ TOÀN THỜI GIAN / THEO THÁNG
     const [recentTransactions, allTimeStats, monthStats] = await Promise.all([
       transaction
         .find({ user_id: userId })
@@ -219,6 +286,7 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
       data: {
         selectedMonth,
         selectedYear,
+        months: monthsList,
         totalBalance,
         monthIncome,
         monthExpense,

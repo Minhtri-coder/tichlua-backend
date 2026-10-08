@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "author": "",
   "license": "ISC",
@@ -18,11 +20,17 @@
     "google-auth-library": "^11.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.1",
-    "tsx": "^4.23.13"
+    "tsx": "^4.23.13",
+    "expo": "~49.0.23",
+    "expo-splash-screen": "~0.20.5",
+    "expo-status-bar": "~1.6.0",
+    "react": "18.2.0",
+    "react-native": "0.72.10"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "@babel/core": "^7.20.0"
   }
 }
