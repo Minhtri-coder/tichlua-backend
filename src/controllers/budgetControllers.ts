@@ -3,6 +3,7 @@ import type { AuthenticatedRequest } from "../middlewares/authMiddleware.ts";
 import Budget from "../models/budget.ts";
 import mongoose from "mongoose";
 import Transaction from "../models/transaction.ts";
+import { getMonthRangeVN } from "../utils/date.ts";
 
 export const setBudget = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -96,8 +97,11 @@ export const getBudgetReport = async (
       parseInt(req.query.month as string) || now.getMonth() + 1;
     const targetYear = parseInt(req.query.year as string) || now.getFullYear();
 
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+   const { startOfMonth, endOfMonth } = getMonthRangeVN(
+     targetYear,
+     targetMonth,
+   );
+
 
     const allBudget = await Budget.find({
       user_id: userId,

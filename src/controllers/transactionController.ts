@@ -2,7 +2,7 @@ import type { Response } from "express";
 import transaction from "../models/transaction.ts";
 import mongoose from "mongoose";
 import type { AuthenticatedRequest } from "../middlewares/authMiddleware.ts";
-
+import { getDayRangeVN, getMonthRangeVN } from "../utils/date.ts";
 interface GroupedDayTransactions {
   date: string;
   totalIncome: number;
@@ -139,7 +139,6 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
     const now = new Date();
 
     //tìm 4 tháng gần nhất có phát sinh tiền
-
     const activeMonthData = await transaction.aggregate([
       {
         $match: {
@@ -154,10 +153,10 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
             month: { $month: { date: "$date", timezone: "Asia/Ho_Chi_Minh" } },
           },
           totalIncome: {
-            $sum: { $cond: [{ $eq: ["$type", "income"] }, "amount", 0] },
+            $sum: { $cond: [{ $eq: ["$type", "income"] }, "$amount", 0] },
           },
           totalExpense: {
-            $sum: { $cond: [{ $eq: ["$type", "expense"] }, "amount", 0] },
+            $sum: { $cond: [{ $eq: ["$type", "expense"] }, "$amount", 0] },
           },
           count: { $sum: 1 },
         },
@@ -209,24 +208,11 @@ export const getHomeDashboard = async (req: AuthenticatedRequest, res: Response)
       ? parseInt(req.query.year as string)
       : lastestActiveMonth?.year || now.getFullYear();
 
-    const startOfMonth = new Date(
-      selectedYear,
-      selectedMonth - 1,
-      1,
-      0,
-      0,
-      0,
-      0,
-    );
-    const endOfMonth = new Date(
+    const { startOfMonth, endOfMonth } = getMonthRangeVN(
       selectedYear,
       selectedMonth,
-      0,
-      23,
-      59,
-      59,
-      999,
     );
+
     // 3. LẤY GIAO DỊCH GẦN ĐÂY VÀ THỐNG KÊ TOÀN THỜI GIAN / THEO THÁNG
     const [recentTransactions, allTimeStats, monthStats] = await Promise.all([
       transaction
@@ -325,11 +311,7 @@ export const getTransactionsByDate = async (
         return;
       }
 
-      const startOfDay = new Date(queryDate);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(queryDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      const { startOfDay, endOfDay } = getDayRangeVN(date as string);
 
       const dataFilter = {
         user_id: userId,
@@ -387,8 +369,10 @@ export const getTransactionsByDate = async (
     const targetMonth = parseInt(month as string) || now.getMonth() + 1;
     const targetYear = parseInt(year as string) || now.getFullYear();
 
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+    const { startOfMonth, endOfMonth } = getMonthRangeVN(
+      targetYear,
+      targetMonth,
+    );
 
     const monthFilter = {
       user_id: userId,
@@ -464,8 +448,8 @@ export const getCategoryPieChart = async (
     const targetMonth = parseInt(month as string) || now.getMonth() + 1;
     const targetYear = parseInt(year as string) || now.getFullYear();
 
-    const startOfMonth = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
-    const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+  const { startOfMonth, endOfMonth } = getMonthRangeVN(targetYear, targetMonth);
+
 
     const chartData = await transaction.aggregate([
       {
