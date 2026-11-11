@@ -72,7 +72,7 @@ export const getBudget = async (req: AuthenticatedRequest, res: Response) => {
 
     const budget = await Budget.findOne({
       user_id: userId,
-      category_id: null,
+      // category_id: null,
       month: targetMonth,
       year: targetYear,
     });
