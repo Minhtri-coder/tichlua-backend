@@ -448,8 +448,7 @@ export const getCategoryPieChart = async (
     const targetMonth = parseInt(month as string) || now.getMonth() + 1;
     const targetYear = parseInt(year as string) || now.getFullYear();
 
-  const { startOfMonth, endOfMonth } = getMonthRangeVN(targetYear, targetMonth);
-
+    const { startOfMonth, endOfMonth } = getMonthRangeVN(targetYear, targetMonth);
 
     const chartData = await transaction.aggregate([
       {

@@ -9,15 +9,14 @@ export const setBudget = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { amount, month, year, category_id } = req.body;
-    if (typeof amount !== "number" || amount <= 0) {
-      res
-        .status(400)
-        .json({
-          status: "fail",
-          message: "Số tiền ngân sách phải là số lớn hơn 0",
-        });
-      return;
-    }
+
+
+        const numericAmount = Number(amount);
+if (isNaN(numericAmount) || numericAmount <= 0) {
+  res.status(400).json({ status: "fail", message: "Số tiền ngân sách phải là số lớn hơn 0" });
+  return;
+}
+
     const now = new Date();
     const targetMonth = month || now.getMonth() + 1;
     const targetYear = year || now.getFullYear();
@@ -38,11 +37,17 @@ export const setBudget = async (req: AuthenticatedRequest, res: Response) => {
       year: targetYear,
     };
 
+   
+
     const budget = await Budget.findOneAndUpdate(
       filter,
-      { amount },
-      { new: true, upsert: true, runValidators: true },
+        { $set: { amount: numericAmount || amount } },
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     );
+
+
+
+
     res.status(200).json({
       status: "success",
       message: `Thiết lập ngân sách tháng ${targetMonth}/${targetYear} thành công`,
@@ -97,10 +102,10 @@ export const getBudgetReport = async (
       parseInt(req.query.month as string) || now.getMonth() + 1;
     const targetYear = parseInt(req.query.year as string) || now.getFullYear();
 
-   const { startOfMonth, endOfMonth } = getMonthRangeVN(
-     targetYear,
-     targetMonth,
-   );
+    const { startOfMonth, endOfMonth } = getMonthRangeVN(
+      targetYear,
+      targetMonth,
+    );
 
 
     const allBudget = await Budget.find({
