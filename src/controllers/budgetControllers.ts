@@ -163,11 +163,11 @@ export const getBudgetReport = async (
         b.amount > 0 ? Math.round((spentAmount / b.amount) * 100) : 0;
 
       return {
-        category_id: b.category_id.id,
-        name: b.category_id.name,
-        icon: b.category_id.icon,
-        color: b.category_id.color,
-        budgetAmount: b.amount,
+        category_id: b.category_id?.id_toString(),
+        name: b.category_id?.name,
+        icon: b.category_id?.icon,
+        color: b.category_id?.color,
+        budgetAmount: b?.amount,
         spentAmount,
         remaining: Math.max(0, b.amount - spentAmount),
         percentage,
